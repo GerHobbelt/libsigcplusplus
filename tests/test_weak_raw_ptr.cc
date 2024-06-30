@@ -25,7 +25,7 @@ test_weak_ptr_becomes_null()
 {
   const auto a = new A();
   sigc::internal::weak_raw_ptr<A> raw_ptr(a);
-  assert(raw_ptr);
+  assert(bool(raw_ptr));
 
   // Call something on A, via the weak_raw_ptr<>,
   // just to make sure that it doesn't get optimised away:
