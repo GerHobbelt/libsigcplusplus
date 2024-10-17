@@ -112,7 +112,7 @@ void warn_people()
     std::cout &lt;&lt; "There are aliens in the carpark!" &lt;&lt; std::endl;
 }
 
-int main()
+int main(void)
 {
     AlienDetector mydetector;
     mydetector.signal_detected.connect( sigc::ptr_fun(warn_people) );
@@ -165,7 +165,7 @@ private:
 	<para>You could rewrite your code as follows:</para>
 
 <programlisting>
-int main()
+int main(void)
 {
     AlienDetector mydetector;
     AlienAlerter  myalerter("localhost");	// added
@@ -242,7 +242,7 @@ void warn_people(std::string where)
     std::cout &lt;&lt; "There are aliens in " &lt;&lt; where &lt;&lt; "!" &lt;&lt; std::endl;
 }
 
-int main()
+int main(void)
 {
     AlienDetector mydetector;
     mydetector.signal_detected.connect( sigc::ptr_fun(warn_people) );
