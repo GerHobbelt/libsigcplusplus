@@ -1,4 +1,5 @@
 # libsigc++
+
 Typesafe Callback Framework for C++
 
 # Introduction
