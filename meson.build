@@ -7,8 +7,7 @@ project('libsigc++', 'cpp',
     'cpp_std=c++17',
     'warning_level=1',
   ],
-  meson_version: '>= 0.55.0', # required for meson.add_dist_script(python3, ...)
-                              # and meson.add_install_script(python3, ...)
+  meson_version: '>= 0.62.0', # required for variables in pkgconfig.generate()
 )
 
 sigcxx_api_version = '3.0'
@@ -40,8 +39,10 @@ project_source_root = meson.current_source_dir()
 project_build_root = meson.current_build_dir()
 
 cpp_compiler = meson.get_compiler('cpp')
-is_msvc = cpp_compiler.get_id() == 'msvc'
-python3 = find_program('python3', version: '>=3.5')
+cpp_compiler_id = cpp_compiler.get_id()
+is_msvc = cpp_compiler_id == 'msvc' or cpp_compiler_id.endswith('-cl')
+is_cl_impersonator = is_msvc and cpp_compiler_id != 'msvc'
+python3 = find_program('python3', version: '>=3.7')
 
 # MSVC: We currently do not support shared and static builds at the,
 #       same time, since we need different defines/cflags for proper
@@ -119,7 +120,7 @@ benchmark_dep = dependency('boost', modules: ['system', 'timer'],
                            version: '>=1.20.0', required: do_benchmark)
 can_benchmark = benchmark_dep.found()
 
-if is_msvc
+if is_msvc and not is_cl_impersonator
   # We must have Visual Studio 2017 15.7 or later...
   assert(cpp_compiler.version().split('.')[0].to_int() >= 19 and \
          cpp_compiler.version().split('.')[1].to_int() >= 15,
@@ -204,6 +205,7 @@ add_project_arguments(warning_flags, language: 'cpp')
 # MSVC: Ignore warnings that aren't really harmful, but make those
 #       that should not be overlooked stand out.
 static_cxxflag = '-DLIBSIGCXX_STATIC'
+msvc_static_cxxflag = is_msvc_static ? static_cxxflag : ''
 if is_msvc
   disable_warnings_list = [
     '/EHsc',  # avoid warnings caused by exception handling model used
@@ -234,13 +236,6 @@ endif
 
 # Configure files
 pkg_conf_data = configuration_data()
-pkg_conf_data.set('prefix', install_prefix)
-pkg_conf_data.set('exec_prefix', '${prefix}')
-pkg_conf_data.set('libdir', '${exec_prefix}' / install_libdir)
-pkg_conf_data.set('datarootdir', '${prefix}' / install_datadir)
-pkg_conf_data.set('datadir', '${datarootdir}')
-pkg_conf_data.set('includedir', '${prefix}' / install_includedir)
-pkg_conf_data.set('top_srcdir', project_source_root)
 pkg_conf_data.set('PACKAGE_VERSION', meson.project_version())
 pkg_conf_data.set('SIGCXX_API_VERSION', sigcxx_api_version)
 
@@ -250,20 +245,6 @@ endif
 pkg_conf_data.set('SIGCXX_MAJOR_VERSION', sigcxx_major_version)
 pkg_conf_data.set('SIGCXX_MINOR_VERSION', sigcxx_minor_version)
 pkg_conf_data.set('SIGCXX_MICRO_VERSION', sigcxx_micro_version)
-pkg_conf_data.set('MSVC_STATIC_CXXFLAG', is_msvc_static ? static_cxxflag : '')
-
-configure_file(
-  input: 'sigc++.pc.in',
-  output: sigcxx_pcname + '.pc',
-  configuration: pkg_conf_data,
-  install_dir: install_pkgconfigdir,
-)
-
-configure_file(
-  input: 'sigc++-uninstalled.pc.in',
-  output: sigcxx_pcname + '-uninstalled.pc',
-  configuration: pkg_conf_data,
-)
 
 sigcxxconfig_h_meson = files('sigc++config.h.meson')
 install_includeconfigdir = install_libdir / sigcxx_pcname / 'include'
@@ -274,9 +255,6 @@ configure_file(
   install_dir: install_includeconfigdir,
 )
 
-# add_dist_script() is not allowed in a subproject if meson.version() < 0.58.0.
-can_add_dist_script = not meson.is_subproject() or meson.version().version_compare('>= 0.58.0')
-
 #subdir('cmake')
 subdir('MSVC_NMake')
 subdir('sigc++')
@@ -285,25 +263,23 @@ subdir('tests')
 subdir('docs/docs/reference')
 subdir('docs/docs/manual')
 
-if can_add_dist_script
-  # Add a ChangeLog file to the distribution directory.
-  meson.add_dist_script(
-    python3, dist_changelog,
-    project_source_root,
-  )
-  # Don't distribute these files and directories.
-  dont_distribute = [
-    '.github',
-  ]
-  # Add build scripts to the distribution directory, and delete .gitignore
-  # files and an empty $MESON_PROJECT_DIST_ROOT/build/ directory.
-  meson.add_dist_script(
-    python3, dist_build_scripts,
-    project_source_root,
-    'untracked' / 'build_scripts',
-    dont_distribute,
-  )
-endif
+# Add a ChangeLog file to the distribution directory.
+meson.add_dist_script(
+  python3, dist_changelog,
+  project_source_root,
+)
+# Don't distribute these files and directories.
+dont_distribute = [
+  '.github',
+]
+# Add build scripts to the distribution directory, and delete .gitignore
+# files and an empty $MESON_PROJECT_DIST_ROOT/build/ directory.
+meson.add_dist_script(
+  python3, dist_build_scripts,
+  project_source_root,
+  'untracked' / 'build_scripts',
+  dont_distribute,
+)
 
 if meson.is_subproject()
   pkgconfig_vars = {
