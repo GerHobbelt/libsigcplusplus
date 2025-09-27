@@ -118,7 +118,7 @@ struct visitor<retype_functor<T_functor, T_type...>>
  * passed on to the functor.
  *
  * @param functor Functor that should be wrapped.
- * @return Adaptor that executes @e functor performing C-style casts on the paramters passed on.
+ * @return Adaptor that executes @e functor performing C-style casts on the parameters passed on.
  *
  * @ingroup retype
  */
@@ -136,7 +136,7 @@ retype(const T_functor<T_func, T_arg...>& functor)
  * passed on to the functor.
  *
  * @param functor Functor that should be wrapped.
- * @return Adaptor that executes @e functor performing C-style casts on the paramters passed on.
+ * @return Adaptor that executes @e functor performing C-style casts on the parameters passed on.
  *
  * @ingroup retype
  */
